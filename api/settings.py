@@ -131,9 +131,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_HTTPONLY = True
 
 # Cookie Domain Settings for Cross-Subdomain Authentication
+#
+# Empty by default outside of DEBUG so a preview deploy (frontend and backend
+# on two unrelated hosts, e.g. two separate Render services) gets host-only
+# cookies instead of ones scoped to a domain the browser will just refuse to
+# set. Production sets AUTH_COOKIE_DOMAIN to the real shared domain so the
+# panel (subdomain-less) and API share the session/CSRF/JWT cookies.
+AUTH_COOKIE_DOMAIN = config('AUTH_COOKIE_DOMAIN', default='.ariantafazolizadeh.ir' if not DEBUG else '') or None
+
 if not DEBUG:
-    SESSION_COOKIE_DOMAIN = '.ariantafazolizadeh.ir'
-    CSRF_COOKIE_DOMAIN = '.ariantafazolizadeh.ir'
+    if AUTH_COOKIE_DOMAIN:
+        SESSION_COOKIE_DOMAIN = AUTH_COOKIE_DOMAIN
+        CSRF_COOKIE_DOMAIN = AUTH_COOKIE_DOMAIN
     SESSION_COOKIE_SAMESITE = 'None'
     CSRF_COOKIE_SAMESITE = 'None'
 else:
@@ -175,6 +184,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -236,7 +246,9 @@ STORAGES = {
         },
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        # Compressed (not Manifest) so a first deploy doesn't 500 on a
+        # template referencing a file collectstatic hasn't hashed yet.
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
@@ -293,6 +305,13 @@ DATABASES = {
         'OPTIONS': _db_options,
     }
 }
+
+# Hosted Postgres (e.g. Render) injects a single DATABASE_URL instead of the
+# discrete DB_* vars above - use it when present, in place of the SQLite default.
+_database_url = config('DATABASE_URL', default='')
+if _database_url:
+    import dj_database_url
+    DATABASES['default'] = dj_database_url.config(default=_database_url, conn_max_age=600, ssl_require=True)
 
 
 # Password validation

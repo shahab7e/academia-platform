@@ -5,8 +5,14 @@ from django.conf import settings
 
 
 def local_media_url(name):
-    """URL for a file kept under MEDIA_ROOT, used when S3 isn't configured."""
-    return f"{settings.MEDIA_URL}{quote(str(name).lstrip('/'))}"
+    """URL for a file kept under MEDIA_ROOT, used when S3 isn't configured.
+
+    Absolute (via BACKEND_BASE_URL) because the frontend can be served from a
+    different origin than the API (e.g. separate Render services) - a bare
+    "/media/..." path would otherwise resolve against the frontend's origin.
+    """
+    path = f"{settings.MEDIA_URL}{quote(str(name).lstrip('/'))}"
+    return f"{settings.BACKEND_BASE_URL.rstrip('/')}{path}"
 
 
 class PublicMediaStorage(S3Boto3Storage):

@@ -33,6 +33,6 @@ class RefreshTokenMiddleware(MiddlewareMixin):
                 httponly=True,
                 samesite="None" if not settings.DEBUG else "Lax",
                 secure=not settings.DEBUG,
-                domain=".ariantafazolizadeh.ir" if not settings.DEBUG else None,
+                domain=settings.AUTH_COOKIE_DOMAIN,
             )
         return response

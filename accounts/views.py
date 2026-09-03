@@ -25,6 +25,36 @@ from .serializers import (
 )
 from .utils import send_verification_email, send_verification_sms, send_reset_password_sms
 from django.core.cache import cache
+from django.conf import settings
+
+
+def _set_auth_cookies(response, access_token, refresh_token=None):
+    """Set the access/refresh JWT cookies with environment-appropriate flags.
+
+    SameSite=None+Secure outside DEBUG regardless of AUTH_COOKIE_DOMAIN: two
+    services on unrelated hosts (e.g. separate Render deploys for frontend/
+    backend) are cross-site to the browser even without an explicit Domain
+    attribute, so the cookie still needs SameSite=None to be sent back.
+    """
+    is_production = not settings.DEBUG
+    cookie_kwargs = dict(
+        httponly=True,
+        secure=is_production,
+        samesite="None" if is_production else "Lax",
+    )
+    if settings.AUTH_COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = settings.AUTH_COOKIE_DOMAIN
+    response.set_cookie(key="access", value=str(access_token), **cookie_kwargs)
+    if refresh_token is not None:
+        response.set_cookie(key="refresh", value=str(refresh_token), **cookie_kwargs)
+    return response
+
+
+def _clear_auth_cookies(response):
+    kwargs = {"domain": settings.AUTH_COOKIE_DOMAIN} if settings.AUTH_COOKIE_DOMAIN else {}
+    response.delete_cookie("access", **kwargs)
+    response.delete_cookie("refresh", **kwargs)
+    return response
 
 
 class SendVerificationCodeView(APIView):
@@ -303,23 +333,8 @@ class CompleteRegistrationView(APIView):
             }, status=status.HTTP_201_CREATED)
             
             # Set tokens in HttpOnly cookies
-            response.set_cookie(
-                key="access",
-                value=str(refresh.access_token),
-                httponly=True,
-                secure=True,
-                samesite="None",
-                domain=".ariantafazolizadeh.ir"
-            )
-            response.set_cookie(
-                key="refresh",
-                value=str(refresh),
-                httponly=True,
-                secure=True,
-                samesite="None",
-                domain=".ariantafazolizadeh.ir"
-            )
-            
+            _set_auth_cookies(response, refresh.access_token, refresh)
+
             return response
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -364,23 +379,8 @@ class RegisterView(APIView):
             }, status=status.HTTP_201_CREATED)
             
             # Set tokens in HttpOnly cookies
-            response.set_cookie(
-                key="access",
-                value=str(refresh.access_token),
-                httponly=True,
-                secure=True,
-                samesite="None",
-                domain=".ariantafazolizadeh.ir"
-            )
-            response.set_cookie(
-                key="refresh",
-                value=str(refresh),
-                httponly=True,
-                secure=True,
-                samesite="None",
-                domain=".ariantafazolizadeh.ir"
-            )
-            
+            _set_auth_cookies(response, refresh.access_token, refresh)
+
             return response
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -486,46 +486,8 @@ class LoginView(APIView):
                 "redirect_to_panel": True if pending_cart else False
             }, status=status.HTTP_200_OK)
 
-            # Set cookie parameters based on environment
-            from django.conf import settings
-            is_production = not settings.DEBUG
-            
             # Set tokens in HttpOnly cookies
-            if is_production:
-                # Production settings
-                response.set_cookie(
-                    key="access",
-                    value=str(refresh.access_token),
-                    httponly=True,
-                    secure=True,
-                    samesite="None",
-                    domain=".ariantafazolizadeh.ir"
-                )
-                response.set_cookie(
-                    key="refresh",
-                    value=str(refresh),
-                    httponly=True,
-                    secure=True,
-                    samesite="None",
-                    domain=".ariantafazolizadeh.ir"
-                )
-            else:
-                # Development settings
-                response.set_cookie(
-                    key="access",
-                    value=str(refresh.access_token),
-                    httponly=True,
-                    secure=False,
-                    samesite="Lax"
-                )
-                response.set_cookie(
-                    key="refresh",
-                    value=str(refresh),
-                    httponly=True,
-                    secure=False,
-                    samesite="Lax"
-                )
-            print(response.cookies)
+            _set_auth_cookies(response, refresh.access_token, refresh)
             return response
         print(f"Failed login attempt for username: {username}")
         return Response({"error": "نام کاربری یا رمز عبور اشتباه است"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -542,30 +504,7 @@ class RefreshTokenView(APIView):
             access = refresh.access_token
 
             response = Response({"message": "Access token refreshed"})
-            
-            # Set cookie parameters based on environment
-            from django.conf import settings
-            is_production = not settings.DEBUG
-            
-            if is_production:
-                # Production settings
-                response.set_cookie(
-                    key="access",
-                    value=str(access),
-                    httponly=True,
-                    secure=True,
-                    samesite="None",
-                    domain=".ariantafazolizadeh.ir"
-                )
-            else:
-                # Development settings
-                response.set_cookie(
-                    key="access",
-                    value=str(access),
-                    httponly=True,
-                    secure=False,
-                    samesite="Lax"
-                )
+            _set_auth_cookies(response, access)
             return response
         except Exception:
             raise AuthenticationFailed("Invalid or expired refresh token")
@@ -574,19 +513,7 @@ class RefreshTokenView(APIView):
 class LogoutView(APIView):
     def post(self, request):
         response = Response({"message": "Logged out"}, status=status.HTTP_200_OK)
-        
-        # Set cookie parameters based on environment
-        from django.conf import settings
-        is_production = not settings.DEBUG
-        
-        if is_production:
-            # Production settings
-            response.delete_cookie("access", domain=".ariantafazolizadeh.ir")
-            response.delete_cookie("refresh", domain=".ariantafazolizadeh.ir")
-        else:
-            # Development settings
-            response.delete_cookie("access")
-            response.delete_cookie("refresh")
+        _clear_auth_cookies(response)
         return response
 
 
