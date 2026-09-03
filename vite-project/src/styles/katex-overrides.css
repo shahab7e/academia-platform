@@ -1,0 +1,22 @@
+
+/* کمی فضای عمودی بین ردیف‌های ماتریس‌ها */
+.katex .mtable .vlist > span {
+  padding-top: 0.2em;
+  margin-bottom: -0.15em;
+  height: 0.3em;
+}
+
+.katex {
+  font-family: "KaTeX_Main", "Ravi FaNum", serif !important;
+}
+
+.katex .mathit {
+  font-family: "KaTeX_Math", "Ravi FaNum", serif !important;
+}
+
+.katex .mathrm {
+  font-family: "KaTeX_Main", "Ravi FaNum", serif !important;
+}
+
+
+

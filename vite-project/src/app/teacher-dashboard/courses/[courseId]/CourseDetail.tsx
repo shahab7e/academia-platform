@@ -1,0 +1,1036 @@
+import { useState, useEffect, useCallback } from "react";
+import copy from "copy-to-clipboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "@/lib/axios";
+import { spotPlayerApi, type SpotPlayerLicenseAdmin } from "@/api/spotplayer";
+import { 
+  Users, 
+  Calendar,
+  Plus,
+  Play,
+  FileText,
+  Edit,
+  Clock,
+  Eye,
+  Trash2,
+  BarChart3,
+  Radio,
+  Copy,
+  CheckCircle,
+  MessageCircle,
+  RefreshCw,
+  KeyRound
+} from "lucide-react";
+import AddSessionModal from "./AddSessionModal";
+import EditSessionModal from "./EditSessionModal";
+import TeacherLiveChat from "./TeacherLiveChat";
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  students_count: number;
+  created_at: string;
+  is_active: boolean;
+  spotplayer_course_id: string | null;
+  rtmp_url: string | null;
+  rtmp_key: string | null;
+  live_iframe: string | null;
+  is_live: boolean;
+  chat_mode: 'public' | 'private';
+}
+
+interface Session {
+  id: number;
+  title: string;
+  session_number: number;
+  description: string;
+  video_file: string | null;
+  video_duration: number | null;
+  lecture_notes: string | null;
+  created_at: string;
+  is_published: boolean;
+}
+
+
+
+interface TestCollection {
+  id: number;
+  name: string;
+  description: string;
+  total_tests: number;
+  student_count: number;
+  created_by_name: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+interface Student {
+  id: number;
+  username: string;
+}
+
+interface CourseDetailProps {
+  courseId: number;
+}
+
+export default function CourseDetail({ courseId }: CourseDetailProps) {
+  const navigate = useNavigate();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [testCollections, setTestCollections] = useState<TestCollection[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddSession, setShowAddSession] = useState(false);
+  const [editSessionId, setEditSessionId] = useState<number | null>(null);
+  const [showLiveDialog, setShowLiveDialog] = useState(false);
+  const [isStartingLive, setIsStartingLive] = useState(false);
+  const [licenses, setLicenses] = useState<SpotPlayerLicenseAdmin[]>([]);
+  const [licensesLoading, setLicensesLoading] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
+
+  const fetchCourseData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [courseResponse, sessionsResponse, collectionsResponse] = await Promise.all([
+        axiosInstance.get(`/courses/${courseId}/`),
+        axiosInstance.get(`/courses/${courseId}/sessions/`),
+        axiosInstance.get(`/courses/${courseId}/test_collections/`)
+      ]);
+      
+      setCourse(courseResponse.data);
+      
+      // Handle both array and pagination format for sessions
+      let sessionsData = [];
+      if (Array.isArray(sessionsResponse.data)) {
+        sessionsData = sessionsResponse.data;
+      } else if (sessionsResponse.data && Array.isArray(sessionsResponse.data.results)) {
+        sessionsData = sessionsResponse.data.results;
+      } else {
+        console.warn("Sessions data is not an array:", sessionsResponse.data);
+        sessionsData = [];
+      }
+      
+      // Handle both array and pagination format for test collections
+      let collectionsData = [];
+      if (Array.isArray(collectionsResponse.data)) {
+        collectionsData = collectionsResponse.data;
+      } else if (collectionsResponse.data && Array.isArray(collectionsResponse.data.results)) {
+        collectionsData = collectionsResponse.data.results;
+      } else {
+        console.warn("Test collections data is not an array:", collectionsResponse.data);
+        collectionsData = [];
+      }
+      
+      setSessions(sessionsData);
+      setTestCollections(collectionsData);
+      setStudents(courseResponse.data.students);
+    } catch (error) {
+      console.error("Error fetching course data:", error);
+      toast.error("خطا در دریافت اطلاعات دوره");
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    fetchCourseData();
+  }, [fetchCourseData]);
+
+  const fetchLicenses = useCallback(async () => {
+    setLicensesLoading(true);
+    try {
+      const res = await spotPlayerApi.listCourseLicenses(courseId);
+      setLicenses(res.data.licenses);
+    } catch {
+      setLicenses([]);
+    } finally {
+      setLicensesLoading(false);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    if (course?.spotplayer_course_id) {
+      fetchLicenses();
+    }
+  }, [course?.spotplayer_course_id, fetchLicenses]);
+
+  const handleCopyLicense = (key: string | null) => {
+    if (!key) return;
+    copy(key);
+    toast.success("کلید لایسنس کپی شد");
+  };
+
+  const handleRegenerateLicense = async (licenseId: number) => {
+    if (!confirm("آیا از بازتولید (Regenerate) این لایسنس مطمئن هستید؟ لایسنس قبلی باطل می‌شود.")) {
+      return;
+    }
+    setRegeneratingId(licenseId);
+    try {
+      const res = await spotPlayerApi.regenerateLicense(courseId, licenseId);
+      setLicenses(prev =>
+        prev.map(l => (l.id === licenseId ? res.data.license : l))
+      );
+      toast.success("لایسنس با موفقیت بازتولید شد");
+    } catch {
+      toast.error("خطا در بازتولید لایسنس");
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
+
+
+  const handleSessionAdded = () => {
+    setShowAddSession(false);
+    fetchCourseData(); // Refresh data
+    toast.success("جلسه با موفقیت اضافه شد");
+  };
+
+  const handleDeleteSession = async (sessionId: number) => {
+    if (!confirm("آیا از حذف این جلسه اطمینان دارید؟")) return;
+    
+    try {
+      await axiosInstance.delete(`/sessions/${sessionId}/`);
+      toast.success("جلسه با موفقیت حذف شد");
+      fetchCourseData(); // Refresh data
+    } catch (error) {
+      console.error("Error deleting session:", error);
+      toast.error("خطا در حذف جلسه");
+    }
+  };
+
+  const handleToggleSessionPublish = async (sessionId: number, currentStatus: boolean) => {
+    try {
+      await axiosInstance.patch(`sessions/${sessionId}/`, {
+        is_published: !currentStatus
+      });
+      toast.success(`جلسه ${!currentStatus ? 'منتشر' : 'غیرمنتشر'} شد`);
+      fetchCourseData(); // Refresh data
+    } catch (error) {
+      console.error("Error updating session:", error);
+      toast.error("خطا در به‌روزرسانی وضعیت جلسه");
+    }
+  };
+
+  const handleToggleChatMode = async () => {
+    try {
+      const newChatMode = course?.chat_mode === 'public' ? 'private' : 'public';
+      await axiosInstance.patch(`/courses/${courseId}/`, {
+        chat_mode: newChatMode
+      });
+      
+      // Update local state
+      setCourse(prev => prev ? { ...prev, chat_mode: newChatMode } : null);
+      
+      toast.success(`حالت چت به ${newChatMode === 'public' ? 'عمومی' : 'خصوصی'} تغییر یافت`);
+    } catch (error) {
+      console.error("Error updating chat mode:", error);
+      toast.error("خطا در تغییر حالت چت");
+    }
+  };
+
+  const handleStartLive = async () => {
+    if (!course?.rtmp_url || !course?.rtmp_key) {
+      toast.error("اطلاعات RTMP تکمیل نشده است. لطفاً ابتدا دوره را ویرایش کنید.");
+      return;
+    }
+
+    if (!course?.live_iframe) {
+      toast.error("کد iframe پخش زنده تنظیم نشده است. لطفاً ابتدا دوره را ویرایش کنید.");
+      return;
+    }
+
+    try {
+      setIsStartingLive(true);
+      await axiosInstance.patch(`/courses/${courseId}/`, {
+        is_live: true
+      });
+      
+      // Update local state
+      setCourse(prev => prev ? { ...prev, is_live: true } : null);
+      
+      toast.success("کلاس آنلاین شروع شد!");
+      setShowLiveDialog(false);
+    } catch (error) {
+      console.error("Error starting live class:", error);
+      toast.error("خطا در شروع کلاس آنلاین");
+    } finally {
+      setIsStartingLive(false);
+    }
+  };
+
+  const handleStopLive = async () => {
+    try {
+      setIsStartingLive(true);
+      await axiosInstance.patch(`/courses/${courseId}/`, {
+        is_live: false
+      });
+      
+      // Update local state
+      setCourse(prev => prev ? { ...prev, is_live: false } : null);
+      
+      toast.success("کلاس آنلاین متوقف شد");
+    } catch (error) {
+      console.error("Error stopping live class:", error);
+      toast.error("خطا در متوقف کردن کلاس آنلاین");
+    } finally {
+      setIsStartingLive(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (!text) {
+      toast.error("متن برای کپی کردن یافت نشد");
+      return;
+    }
+
+    try {
+      copy(text);
+      toast.success(`${label} کپی شد`);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast.error("خطا در کپی کردن. لطفاً دستی کپی کنید.");
+      // Fallback to show text to user if copy fails
+      window.prompt(`${label} - لطفاً متن زیر را کپی کنید:`, text);
+    }
+  };
+
+
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fa-IR");
+  };
+
+  // const formatDuration = (seconds: number) => {
+  //   const hours = Math.floor(seconds / 3600);
+  //   const minutes = Math.floor((seconds % 3600) / 60);
+  //   const secs = seconds % 60;
+    
+  //   if (hours > 0) {
+  //     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  //   }
+  //   return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  // };
+
+  // const getTestTypeLabel = (type: string) => {
+  //   const labels: Record<string, string> = {
+  //     weekly: "آزمون هفتگی",
+  //     midterm: "میان‌ترم",
+  //     final: "پایان‌ترم",
+  //     assignment: "تکلیف",
+  //   };
+  //   return labels[type] || type;
+  // };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">در حال بارگذاری...</div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">دوره یافت نشد</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Course Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-2xl">{course.title}</CardTitle>
+              <p className="text-muted-foreground mt-2">{course.description || "توضیحی برای این دوره ثبت نشده است"}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={course.is_active ? "default" : "secondary"}>
+                {course.is_active ? "فعال" : "غیرفعال"}
+              </Badge>
+              {course.is_live && (
+                <Badge variant="destructive" className="animate-pulse">
+                  <Radio className="w-3 h-3 ml-1" />
+                  پخش زنده
+                </Badge>
+              )}
+              
+              {course.rtmp_url && course.rtmp_key && course.live_iframe && (
+                <div className="flex gap-2">
+                  {!course.is_live ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowLiveDialog(true)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Radio className="w-4 h-4 ml-2" />
+                      شروع کلاس آنلاین
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleStopLive}
+                      disabled={isStartingLive}
+                    >
+                      {isStartingLive ? "در حال متوقف کردن..." : "متوقف کردن کلاس"}
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {course.spotplayer_course_id && (
+                <Badge variant="outline" className="text-xs gap-1" title="شناسه دوره اسپات‌پلیر">
+                  <KeyRound className="w-3 h-3" />
+                  اسپات‌پلیر: <span dir="ltr" className="font-mono">{course.spotplayer_course_id}</span>
+                </Badge>
+              )}
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate(`/panel/courses/${courseId}/edit`)}
+              >
+                <Edit className="w-4 h-4 ml-2" />
+                ویرایش دوره
+              </Button>
+            </div>
+          </div>
+          
+          {/* Course Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-lg">
+              <Play className="w-6 h-6 text-blue-600" />
+              <div>
+                <div className="text-lg font-bold text-blue-600">{sessions.length}</div>
+                <div className="text-sm text-blue-600">جلسه</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg">
+              <FileText className="w-6 h-6 text-green-600" />
+              <div>
+                <div className="text-lg font-bold text-green-600">{testCollections.length}</div>
+                <div className="text-sm text-green-600">مجموعه آزمون</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-purple-500/10 rounded-lg">
+              <Users className="w-6 h-6 text-purple-600" />
+              <div>
+                <div className="text-lg font-bold text-purple-600">{course.students_count}</div>
+                <div className="text-sm text-purple-600">دانش‌آموز</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-orange-500/10 rounded-lg">
+              <Calendar className="w-6 h-6 text-orange-600" />
+              <div>
+                <div className="text-sm text-orange-600">ایجاد شده در</div>
+                <div className="text-sm font-medium text-orange-600">{formatDate(course.created_at)}</div>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Tabs */}
+      <Tabs defaultValue="sessions" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="sessions">جلسات ({sessions.length})</TabsTrigger>
+          <TabsTrigger value="tests">مجموعه آزمون‌ها ({testCollections.length})</TabsTrigger>
+          <TabsTrigger value="students">دانش‌آموزان ({course.students_count})</TabsTrigger>
+          <TabsTrigger value="licenses" className="flex items-center justify-center gap-2">
+            <KeyRound className="w-3 h-3" />
+            لایسنس‌ها
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            چت زنده
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Sessions Tab */}
+        <TabsContent value="sessions" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>جلسات دوره</CardTitle>
+                <Button onClick={() => setShowAddSession(true)} className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  افزودن جلسه جدید
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sessions.length === 0 ? (
+                <div className="text-center py-12">
+                  <Play className="w-16 h-16 text-muted-foreground  mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">هنوز جلسه‌ای ایجاد نشده است</h3>
+                  <p className="text-muted-foreground mb-6">برای شروع، اولین جلسه دوره را ایجاد کنید</p>
+                  <Button onClick={() => setShowAddSession(true)}>
+                    <Plus className="w-4 h-4 ml-2" />
+                    افزودن جلسه جدید
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sessions.map((session) => (
+                    <SessionCard 
+                      key={session.id} 
+                      session={session}
+                      onDelete={handleDeleteSession}
+                      onTogglePublish={handleToggleSessionPublish}
+                      onEdit={setEditSessionId}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tests Tab */}
+        <TabsContent value="tests" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>مجموعه آزمون‌های دوره</CardTitle>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={() => navigate(`/panel/test-collections/new?courseId=${courseId}`)}
+                >
+                  <Plus className="w-4 h-4" />
+                  افزودن مجموعه آزمون جدید
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {testCollections.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-muted-foreground  mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">هنوز مجموعه آزمونی ایجاد نشده است</h3>
+                  <p className="text-muted-foreground mb-6">برای شروع، اولین مجموعه آزمون دوره را ایجاد کنید</p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(`/panel/test-collections/new?courseId=${courseId}`)}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    افزودن مجموعه آزمون جدید
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {testCollections.map((collection) => (
+                    <CollectionCard key={collection.id} collection={collection} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Students Tab */}
+        <TabsContent value="students" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>دانش‌آموزان ثبت‌نام شده</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                لیست دانش‌آموزانی که در این دوره ثبت‌نام کرده‌اند
+              </p>
+            </CardHeader>
+            <CardContent>
+              {students && students.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">هنوز دانش‌آموزی ثبت‌نام نشده است</h3>
+                  <p className="text-muted-foreground">دانش‌آموزان از طریق فروشگاه می‌توانند در این دوره ثبت‌نام کنند</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {students && students.map((student) => (
+                    <StudentCard key={student.id} student={student} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Licenses Tab */}
+        <TabsContent value="licenses" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5" />
+                لایسنس‌های اسپات‌پلیر
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                لیست لایسنس‌های صادرشده برای دانش‌آموزان این دوره
+              </p>
+            </CardHeader>
+            <CardContent>
+              {!course?.spotplayer_course_id ? (
+                <div className="text-center py-10">
+                  <KeyRound className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    برای این دوره شناسه اسپات‌پلیر تنظیم نشده است. ابتدا در «ویرایش دوره»
+                    شناسه دوره اسپات‌پلیر را وارد کنید.
+                  </p>
+                </div>
+              ) : licensesLoading ? (
+                <div className="flex items-center justify-center py-10 text-muted-foreground">
+                  در حال بارگذاری لایسنس‌ها...
+                </div>
+              ) : licenses.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  هنوز لایسنسی صادر نشده است. با اولین ورود دانش‌آموز به بخش لایسنس،
+                  به‌صورت خودکار ایجاد می‌شود.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-right text-muted-foreground">
+                        <th className="py-2 px-3">دانش‌آموز</th>
+                        <th className="py-2 px-3">موبایل / ایمیل</th>
+                        <th className="py-2 px-3">کلید لایسنس</th>
+                        <th className="py-2 px-3">تاریخ صدور</th>
+                        <th className="py-2 px-3">وضعیت دستگاه</th>
+                        <th className="py-2 px-3">عملیات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {licenses.map((lic) => (
+                        <tr key={lic.id} className="border-b">
+                          <td className="py-2 px-3 font-medium">{lic.student_name}</td>
+                          <td className="py-2 px-3" dir="ltr" style={{ textAlign: "right" }}>
+                            {lic.student_phone || lic.student_email || "—"}
+                          </td>
+                          <td className="py-2 px-3">
+                            <div className="flex items-center gap-2">
+                              <code className="max-w-[180px] truncate rounded bg-muted px-2 py-1 font-mono text-xs" dir="ltr">
+                                {lic.spotplayer_license_key || "—"}
+                              </code>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => handleCopyLicense(lic.spotplayer_license_key)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3">{formatDate(lic.created_at)}</td>
+                          <td className="py-2 px-3">
+                            {typeof lic.device_limit === "object"
+                              ? `p0: ${lic.device_limit.p0 ?? "-"}`
+                              : lic.device_limit === "default"
+                                ? "پیش‌فرض"
+                                : lic.device_limit}
+                          </td>
+                          <td className="py-2 px-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={regeneratingId === lic.id}
+                              onClick={() => handleRegenerateLicense(lic.id)}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${regeneratingId === lic.id ? "animate-spin" : ""}`} />
+                              بازتولید
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Live Chat Tab */}
+        <TabsContent value="chat" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    چت زنده کلاس
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    شما می‌توانید با دانش‌آموزان در طول کلاس زنده چت کنید
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {course?.chat_mode === 'public' ? 'چت عمومی' : 'چت خصوصی'}
+                    </span>
+                    <Switch
+                      checked={course?.chat_mode === 'public'}
+                      onCheckedChange={handleToggleChatMode}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-right max-w-60">
+                    {course?.chat_mode === 'public' 
+                      ? 'دانش‌آموزان می‌توانند پیام‌های یکدیگر را ببینند'
+                      : 'دانش‌آموزان فقط پیام‌های خود و معلم را می‌بینند'
+                    }
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 border-t">
+              <TeacherLiveChat courseId={courseId.toString()} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Session Modal */}
+      {showAddSession && (
+        <AddSessionModal
+          courseId={courseId}
+          onClose={() => setShowAddSession(false)}
+          onSessionAdded={handleSessionAdded}
+        />
+      )}
+
+      {/* Edit Session Modal */}
+      {editSessionId && (
+        <EditSessionModal
+          courseId={courseId}
+          sessionId={editSessionId}
+          onClose={() => setEditSessionId(null)}
+          onSessionUpdated={() => {
+            setEditSessionId(null);
+            fetchCourseData();
+          }}
+        />
+      )}
+
+      {/* Live Class Confirmation Dialog */}
+      <Dialog open={showLiveDialog} onOpenChange={setShowLiveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Radio className="w-5 h-5 text-red-600" />
+              شروع کلاس آنلاین
+            </DialogTitle>
+            <DialogDescription>
+              آیا از شروع کلاس آنلاین اطمینان دارید؟ پس از تأیید، کلاس برای دانش‌آموزان قابل مشاهده خواهد بود.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm">اطلاعات پخش زنده:</h4>
+              
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">RTMP URL:</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={course?.rtmp_url || ""} 
+                    readOnly 
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(course?.rtmp_url || "", "RTMP URL")}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Stream Key:</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="password"
+                    value={course?.rtmp_key || ""} 
+                    readOnly 
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(course?.rtmp_key || "", "Stream Key")}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-blue-800 dark:text-blue-300">
+                <p className="font-medium mb-1">نکات مهم:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• از نرم‌افزار پخش مناسب (مثل OBS) استفاده کنید</li>
+                  <li>• اطلاعات RTMP را در نرم‌افزار خود تنظیم کنید</li>
+                  <li>• قبل از شروع، اتصال اینترنت را بررسی کنید</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowLiveDialog(false)}
+            >
+              انصراف
+            </Button>
+            <Button 
+              onClick={handleStartLive}
+              disabled={isStartingLive}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isStartingLive ? "در حال شروع..." : "شروع کلاس آنلاین"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+interface SessionCardProps {
+  session: Session;
+  onDelete: (sessionId: number) => void;
+  onTogglePublish: (sessionId: number, currentStatus: boolean) => void;
+  onEdit: (sessionId: number) => void;
+}
+
+function SessionCard({ session, onDelete, onTogglePublish, onEdit }: SessionCardProps) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fa-IR");
+  };
+
+  const formatDuration = (seconds: number) => {
+    if (!seconds) return "نامشخص";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Badge variant="outline">جلسه {session.session_number}</Badge>
+              <Badge variant={session.is_published ? "default" : "secondary"}>
+                {session.is_published ? "منتشر شده" : "پیش‌نویس"}
+              </Badge>
+            </div>
+            <h3 className="text-lg font-medium mb-2">{session.title}</h3>
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+              {session.description || "توضیحی برای این جلسه ثبت نشده است"}
+            </p>
+            
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(session.created_at)}</span>
+              </div>
+              {session.video_duration && (
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatDuration(session.video_duration)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Files */}
+            <div className="flex items-center gap-3">
+              {session.video_file && (
+                <div className="flex items-center gap-2 text-sm text-blue-600">
+                  <Play className="w-4 h-4" />
+                  <span>ویدیو آپلود شده</span>
+                </div>
+              )}
+              {session.lecture_notes && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <FileText className="w-4 h-4" />
+                  <span>جزوه آپلود شده</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 ml-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => onTogglePublish(session.id, session.is_published)}
+            >
+              {session.is_published ? "غیرمنتشر کردن" : "انتشار"}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => onEdit(session.id)}
+            >
+              <Edit className="w-4 h-4 ml-2" />
+              ویرایش
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => onDelete(session.id)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+
+interface CollectionCardProps {
+  collection: TestCollection;
+}
+
+function CollectionCard({ collection }: CollectionCardProps) {
+  const navigate = useNavigate();
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fa-IR");
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Badge variant={collection.is_active ? "default" : "secondary"}>
+                {collection.is_active ? "فعال" : "غیرفعال"}
+              </Badge>
+            </div>
+            <h3 className="text-lg font-medium mb-2">{collection.name}</h3>
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+              {collection.description || "توضیحی برای این مجموعه آزمون ثبت نشده است"}
+            </p>
+            
+            <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground mb-4">
+              <div className="flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                <span>{collection.total_tests} آزمون</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                <span>{collection.student_count} دانش‌آموز</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(collection.created_at)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 ml-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/panel/test-collections/${collection.id}`)}
+            >
+              <Eye className="w-4 h-4 ml-2" />
+              مشاهده و ویرایش
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/panel/test-collections/${collection.id}/statistics`)}
+            >
+              <BarChart3 className="w-4 h-4 ml-2" />
+              آمار
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface StudentCardProps {
+  student: Student;
+}
+
+function StudentCard({ student }: StudentCardProps) {
+  // Generate avatar color based on student ID
+  const getAvatarColor = (id: number) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-red-500', 'bg-yellow-500', 'bg-teal-500'
+    ];
+    return colors[id % colors.length];
+  };
+
+  // Get initials from username
+  const getInitials = (username: string) => {
+    return username.charAt(0).toUpperCase();
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="pt-4">
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          <div className={`w-10 h-10 rounded-full ${getAvatarColor(student.id)} flex items-center justify-center text-white font-medium text-sm`}>
+            {getInitials(student.username)}
+          </div>
+
+          {/* Student Info */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm truncate">{student.username}</h3>
+            <p className="text-xs text-muted-foreground">دانش‌آموز</p>
+          </div>
+
+          {/* Status Badge */}
+          <Badge variant="outline" className="text-xs">
+            فعال
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

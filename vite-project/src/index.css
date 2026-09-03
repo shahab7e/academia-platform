@@ -1,0 +1,1117 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./components/ui/rtl-table.css";
+@import "katex/dist/katex.min.css";
+
+@import './assets/RaviPro/RaviFamily/Webfonts/fontiran.css';
+@import './assets/RaviPro/Ravi FaNum/Webfonts/fontiran.css';
+
+/* RTL content styles */
+.rtl-content {
+  direction: rtl;
+  text-align: justify;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --breakpoint-xs: 30rem;
+  --breakpoint-2md: 54rem;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --animate-aurora: aurora 60s linear infinite;
+  @keyframes aurora {
+  from {
+    backgroundPosition: 50% 50%, 50% 50%;
+    }
+  to {
+    backgroundPosition: 350% 50%, 350% 50%;
+    }
+  }
+  @keyframes aurora {
+  from {
+    backgroundPosition: 50% 50%, 50% 50%;
+    }
+  to {
+    backgroundPosition: 350% 50%, 350% 50%;
+    }
+  }
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.5 0.2 270); /* Purple */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.7 0.15 270); /* Purple for dark mode */
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.fade-bottom {
+  -webkit-mask-image: linear-gradient(#000, #0000);
+  mask-image: linear-gradient(#000, #0000);
+}
+
+body {
+  font-family: 'Ravi', 'Vazirmatn', sans-serif;
+}
+
+html.font-iransansx {
+  font-family: 'IRANSansX', 'Vazirmatn', sans-serif;
+}
+
+html.font-ravi {
+  font-family: 'Ravi', 'Vazirmatn', sans-serif;
+}
+
+.font-ravi {
+  font-family: 'Ravi', 'Vazirmatn', sans-serif;
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Persian Calendar Styles */
+.persian-calendar-container .rmdp-container {
+  direction: rtl;
+  font-family: 'IRANSansX', 'Vazirmatn', sans-serif;
+  width: 100%;
+}
+
+.persian-calendar-container .rmdp-calendar {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  position: static !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.persian-calendar-container .rmdp-header {
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: 12px 12px 0 0;
+}
+
+.persian-calendar-container .rmdp-header-values {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.persian-calendar-container .rmdp-arrow-container {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.persian-calendar-container .rmdp-arrow-container:hover {
+  background: var(--primary);
+  opacity: 0.8;
+  scale: 1.05;
+}
+
+.persian-calendar-container .rmdp-day-picker {
+  background: var(--background);
+  padding: 0.5rem;
+}
+
+.persian-calendar-container .rmdp-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.persian-calendar-container .rmdp-day {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.persian-calendar-container .rmdp-day:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  scale: 1.02;
+}
+
+.persian-calendar-container .rmdp-selected {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.persian-calendar-container .rmdp-today {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: bold;
+  border: 2px solid var(--primary);
+}
+
+.persian-calendar-container .rmdp-week-day {
+  color: var(--muted-foreground);
+  font-weight: 600;
+  padding: 0.75rem;
+  text-align: center;
+  background: var(--muted/50);
+  border-radius: 6px;
+  margin: 2px;
+}
+
+.persian-calendar-container .rmdp-day.rmdp-deactive {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+/* Make sure calendar is always visible */
+.persian-calendar-container .rmdp-wrapper {
+  position: static !important;
+  box-shadow: none !important;
+}
+
+.persian-calendar-container .rmdp-calendar {
+  position: static !important;
+  transform: none !important;
+}
+
+/* KaTeX Math Display Styles */
+/*
+.katex-display {
+  margin: 1.5em 0;
+  text-align: center !important;
+  overflow-x: auto;
+  direction: ltr;
+  display: block;
+  width: 100%;
+}
+
+.katex {
+  font-size: 1.1em;
+  direction: ltr;
+}
+
+/* Math expressions should always be LTR and centered for display */
+.katex-display .katex {
+  direction: ltr !important;
+  text-align: center !important;
+  margin: 0 auto;
+  display: inline-block;
+}
+
+/* Additional math centering */
+.math-display,
+.math-display > *,
+div[class*="math-display"] {
+  text-align: center !important;
+  width: 100%;
+  display: block;
+}
+
+/* Ensure all block math is centered */
+.katex-display,
+.math-block,
+.math-display {
+  text-align: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.katex-inline {
+  direction: ltr !important;
+  display: inline-block;
+}
+
+/* Inline math in text */
+.katex-inline .katex {
+  direction: ltr !important;
+}
+
+/* Force LTR for all inline math expressions */
+span.katex {
+  direction: ltr !important;
+  display: inline-block;
+}
+
+/* Math inside paragraphs */
+p .katex,
+div .katex {
+  direction: ltr !important;
+}
+
+/* Math expressions in dark mode */
+.dark .katex {
+  color: hsl(var(--foreground));
+}
+
+.dark .katex .mord {
+  color: hsl(var(--foreground));
+}
+
+.dark .katex .mop {
+  color: hsl(var(--primary));
+}
+
+.dark .katex .mbin {
+  color: hsl(var(--accent-foreground));
+}
+
+.dark .katex .mrel {
+  color: hsl(var(--accent-foreground));
+}
+
+/* Responsive math display */
+@media (max-width: 640px) {
+  .katex-display {
+    overflow-x: auto;
+    margin: 1em 0;
+  }
+  
+  .katex {
+    font-size: 1em;
+  }
+}
+
+/* Better math inline display */
+.katex-inline {
+  margin: 0 2px;
+  direction: ltr !important;
+}
+
+/* Force LTR for math inline wrapper */
+.math-inline-wrapper {
+  direction: ltr !important;
+  display: inline-block;
+}
+
+/* Math block styling */
+.math-display {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid hsl(var(--border));
+  direction: ltr !important;
+}
+
+/* Ensure all math elements are LTR */
+.katex * {
+  direction: ltr !important;
+}
+
+/* Override RTL for math containers */
+.prose .katex-display,
+.prose .katex-inline,
+.prose .katex {
+  direction: ltr !important;
+  text-align: center;
+}
+
+/* More specific selectors for inline math */
+.prose p .katex,
+.prose div .katex,
+.prose span .katex {
+  direction: ltr !important;
+  display: inline-block;
+}
+
+/* Ensure math symbols and operators are LTR */
+.katex .mord,
+.katex .mop,
+.katex .mbin,
+.katex .mrel,
+.katex .mpunct,
+.katex .mopen,
+.katex .mclose {
+  direction: ltr !important;
+}
+*/
+
+/* فونت پیش‌فرض KaTeX برای همه عناصر ریاضی */
+.katex {
+  font-family: "KaTeX_Main", "Ravi FaNum", serif !important;
+}
+
+.katex .mathit {
+  font-family: "KaTeX_Math", "Ravi FaNum", serif !important;
+}
+
+.katex .mathrm {
+  font-family: "KaTeX_Main", "Ravi FaNum", serif !important;
+}
+
+/* کلاس خاص برای اعداد فارسی */
+.persian-number {
+  font-family: "Ravi FaNum", serif !important;
+  /* direction: ltr; */
+  /* unicode-bidi: embed; */
+  /* display: inline-block; */
+}
+
+/* استفاده از فونت FaNum برای متن‌های غیرریاضی */
+.text-fanum {
+  font-family: "Ravi FaNum", "IRANSansX", sans-serif !important;
+}
+
+/* Persian text with proper number handling */
+.persian-text {
+  direction: rtl;
+  text-align: justify;
+  unicode-bidi: embed;
+}
+
+/* Persian numbers with proper boundaries */
+.persian-number {
+  font-family: "Ravi FaNum", "IRANSansX", serif !important;
+  /* direction: ltr; */
+  /* unicode-bidi: embed; */
+  /* display: inline-block; */
+  /* white-space: nowrap; */
+  /* margin: 0 1px; */
+}
+
+/* Mixed content (Persian text with numbers) */
+.persian-mixed {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.persian-mixed .persian-number {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+/* Mathematical expressions with Persian numbers */
+.math-persian {
+  direction: ltr;
+  font-family: "Ravi FaNum", "KaTeX_Main", serif !important;
+}
+
+/* Question text with proper Persian number handling */
+.question-text {
+  direction: rtl;
+  text-align: justify;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+}
+
+.question-text .persian-number {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+  font-family: "Ravi FaNum", serif !important;
+  margin: 0 1px;
+}
+
+/* Question editor specific styles */
+.question-editor {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+  direction: rtl;
+  text-align: justify;
+  line-height: 1.6;
+}
+
+.question-editor .persian-number {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 0 1px;
+  font-family: "Ravi FaNum", serif !important;
+}
+
+/* Fix for text wrapping in question preview */
+.question-preview {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+  direction: rtl;
+  text-align: justify;
+  line-height: 1.6;
+}
+
+.question-preview .persian-number {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 0 1px;
+  font-family: "Ravi FaNum", serif !important;
+}
+
+/* Fractions and mathematical expressions */
+.math-fraction {
+  direction: ltr;
+  font-family: "Ravi FaNum", "KaTeX_Main", serif !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Ensure proper spacing for Persian numbers in text */
+p, div, span {
+  word-spacing: normal;
+  letter-spacing: normal;
+}
+
+/* Fix for overlapping text and numbers */
+.text-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.text-content .persian-number {
+  white-space: nowrap;
+  display: inline-block;
+  margin: 0 1px;
+}
+
+
+
+
+
+/* Responsive Table Styles */
+.responsive-table-container {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.responsive-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.responsive-table-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.responsive-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.responsive-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Table Cell Truncation */
+.table-cell-truncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .responsive-table-container {
+    font-size: 14px;
+  }
+  
+  .table-cell-truncate {
+    max-width: 120px;
+  }
+}
+
+/* Smooth scrolling for messages container */
+#messages-container {
+  scroll-behavior: smooth;
+}
+
+/* Better scroll styling */
+#messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+#messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#messages-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+#messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark #messages-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark #messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Prevent page scroll for AI conversation pages */
+.ai-conversation-page {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Ensure chat container takes full height */
+.chat-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* Prevent body scroll when in AI conversation */
+body:has(.ai-conversation-detail) {
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Alternative approach for body scroll prevention */
+html, body {
+  overflow-x: hidden;
+}
+
+body.ai-conversation-active {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+/* Floating Shapes Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-25px) rotate(2deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(15px) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(25px) rotate(6deg);
+  }
+  75% {
+    transform: translateY(10px) rotate(-2deg);
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-15px) translateX(10px) rotate(3deg);
+  }
+  66% {
+    transform: translateY(10px) translateX(-5px) rotate(-2deg);
+  }
+}
+
+.floating-shape {
+  animation: float 20s ease-in-out infinite;
+}
+
+.floating-shape:nth-child(odd) {
+  animation-name: float-reverse;
+  animation-duration: 25s;
+}
+
+.floating-shape:nth-child(3n) {
+  animation-name: gentle-float;
+  animation-duration: 18s;
+}
+
+.floating-image {
+  filter: blur(0.5px) brightness(1.1);
+  mix-blend-mode: multiply;
+}
+
+/* ==========================================================================
+   Print Stylesheet Optimization for Main Page (Ctrl+P)
+   ========================================================================== */
+@media print {
+  html, body, #root, [data-slot="sidebar-wrapper"], [data-slot="sidebar-inset"], main {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    position: static !important;
+    display: block !important;
+  }
+
+  aside,
+  header,
+  nav,
+  button,
+  .no-print,
+  .print\:hidden,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-trigger"] {
+    display: none !important;
+  }
+
+  * {
+    color: #000000 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    font-family: 'Ravi', 'Vazirmatn', 'Vazir', Tahoma, sans-serif !important;
+  }
+
+  .bg-card, .bg-accent\/30, .bg-muted\/20, .bg-primary\/10 {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  table, th, td {
+    border: 1px solid #94a3b8 !important;
+    color: #000000 !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Feature carousel (components/ui/feature-carousel.tsx)
+
+   A 3D coverflow deck. Every card derives its palette from a single --fc-h
+   hue so the deck reads as one prism dispersion, and its position from
+   --fc-offset, the wrapped signed distance from the active card — which is
+   what makes the loop endless with no visible seam.
+--------------------------------------------------------------------------- */
+.fc-stage {
+  position: relative;
+  height: clamp(10.5rem, 27vh, 12.5rem);
+  perspective: 1600px;
+  perspective-origin: 50% 45%;
+  outline: none;
+  touch-action: pan-y;
+  /* Dragging the deck must not sweep a text selection across the cards. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fc-card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: clamp(17rem, 86vw, 23rem);
+  height: 100%;
+  margin-left: calc(clamp(17rem, 86vw, 23rem) / -2);
+  border-radius: 16px;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+
+  transform:
+    translateX(calc(var(--fc-offset) * 46%))
+    translateZ(calc(var(--fc-depth) * -150px))
+    rotateY(calc(var(--fc-offset) * -26deg))
+    scale(calc(1 - var(--fc-depth) * 0.04));
+
+  opacity: calc(1 - var(--fc-depth) * 0.3);
+
+  background:
+    linear-gradient(
+      168deg,
+      oklch(0.64 0.21 var(--fc-h)) 0%,
+      oklch(0.45 0.2 calc(var(--fc-h) + 14)) 46%,
+      oklch(0.24 0.11 calc(var(--fc-h) - 10)) 100%
+    );
+
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.28),
+    inset 0 0 0 1px oklch(1 0 0 / 0.1),
+    0 20px 40px -24px oklch(0.15 0.06 var(--fc-h) / 0.8);
+
+  transition:
+    transform 780ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 780ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 780ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The one card that carries the deck. */
+.fc-card[data-center] {
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.34),
+    inset 0 0 0 1px oklch(1 0 0 / 0.14),
+    0 4px 14px -6px oklch(0.15 0.06 var(--fc-h) / 0.7),
+    0 42px 90px -34px oklch(0.55 0.26 var(--fc-h) / 0.85);
+}
+
+/* Click target for the off-centre cards; the centre card is a normal region. */
+.fc-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+/* Fixed diagonal glaze — a material highlight, not a moving effect. */
+.fc-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      142deg,
+      oklch(1 0 0 / 0.2) 0%,
+      oklch(1 0 0 / 0.05) 26%,
+      transparent 52%
+    ),
+    radial-gradient(
+      100% 62% at 82% 6%,
+      oklch(0.92 0.13 calc(var(--fc-h) + 44) / 0.4) 0%,
+      transparent 70%
+    );
+}
+
+.fc-watermark {
+  position: absolute;
+  top: -1.25rem;
+  inset-inline-end: -1.5rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  color: oklch(1 0 0);
+  opacity: 0.11;
+  pointer-events: none;
+}
+
+.fc-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.25rem 1.4rem;
+}
+
+/* Icon and title share a line, so the icon heads the card instead of floating
+   alongside the description. */
+.fc-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.fc-chip {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 11px;
+  color: oklch(1 0 0);
+  background: oklch(1 0 0 / 0.14);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
+  backdrop-filter: blur(6px);
+}
+
+.fc-chip > svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.fc-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  color: oklch(1 0 0);
+  text-wrap: balance;
+}
+
+.fc-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 300;
+  line-height: 1.7;
+  /* Tinted from the card's own hue rather than grey, so it stays part of the
+     material while clearing contrast. */
+  color: oklch(0.93 0.03 var(--fc-h) / 0.85);
+}
+
+.fc-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  padding: 0.36rem 0.85rem 0.36rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: oklch(0.2 0.07 var(--fc-h));
+  background: oklch(0.99 0.01 var(--fc-h));
+  box-shadow: 0 6px 18px -8px oklch(0.15 0.06 var(--fc-h) / 0.9);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fc-cta > svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.fc-cta:hover {
+  transform: translateY(-2px);
+}
+
+/* Off-centre cards recede: their copy would only be noise at that scale. */
+.fc-card:not([data-center]) .fc-desc,
+.fc-card:not([data-center]) .fc-cta {
+  opacity: 0;
+  transition: opacity 340ms ease;
+}
+
+.fc-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.fc-nav {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  color: var(--foreground);
+  background: oklch(from var(--foreground) l c h / 0.06);
+  box-shadow: inset 0 0 0 1px oklch(from var(--foreground) l c h / 0.16);
+  backdrop-filter: blur(8px);
+  transition:
+    background 220ms ease,
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fc-nav:hover {
+  background: oklch(from var(--foreground) l c h / 0.13);
+  transform: scale(1.06);
+}
+
+.fc-nav > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.fc-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fc-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: oklch(from var(--foreground) l c h / 0.25);
+  transition:
+    width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 420ms ease;
+}
+
+.fc-dot[data-on] {
+  width: 1.6rem;
+  background: var(--foreground);
+}
+
+/* The centre card dominated small screens at 86vw; pull it in and flatten the
+   band so the deck stays a footer to the headline rather than the whole view. */
+@media (max-width: 640px) {
+  .fc-stage {
+    height: clamp(9.75rem, 23vh, 11rem);
+  }
+
+  .fc-card {
+    width: 72vw;
+    margin-left: -36vw;
+  }
+
+  .fc-body {
+    padding: 1rem 1.1rem;
+  }
+
+  .fc-title {
+    font-size: 1.05rem;
+  }
+
+  .fc-watermark {
+    width: 7rem;
+    height: 7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-card {
+    transition: opacity 200ms ease;
+  }
+
+  .fc-cta:hover,
+  .fc-nav:hover {
+    transform: none;
+  }
+}

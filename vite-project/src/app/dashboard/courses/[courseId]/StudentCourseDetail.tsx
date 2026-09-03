@@ -1,0 +1,593 @@
+// StudentCourseDetail.tsx
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import axiosInstance from "@/lib/axios";
+import { SpotPlayerLicenseCard } from "@/components/SpotPlayerLicenseCard";
+import { 
+  Users, 
+  Calendar,
+  Play,
+  FileText,
+  Clock,
+  Download,
+  X,
+  Radio,
+  Eye
+} from "lucide-react";
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  teacher: {
+    username: string;
+  };
+  created_at: string;
+  is_live?: boolean;
+  live_iframe?: string;
+  spotplayer_course_id?: string | null;
+}
+
+interface File {
+  id: number;
+  file_id: string;
+  course_id?: number | null;
+  session_id?: number | null;
+  file_type: string;
+  title: string;
+  file_url?: string;
+  arvan_url?: string;
+  session_name?: string | null;
+  created_at: string;
+  player_url: string;
+}
+
+interface Session {
+  id: number;
+  title: string;
+  session_number: number;
+  description: string;
+  created_at: string;
+  is_published: boolean;
+  is_watched: boolean;
+  files: File[];
+}
+
+interface StudentCourseDetailProps {
+  courseId: number;
+}
+
+export default function StudentCourseDetail({ courseId }: StudentCourseDetailProps) {
+  const [course, setCourse] = useState<Course | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [courseFiles, setCourseFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+
+  const fetchCourseData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [courseResponse, sessionsResponse] = await Promise.all([
+        axiosInstance.get(`/courses/${courseId}/`),
+        axiosInstance.get(`/courses/${courseId}/student-sessions/`)
+      ]);
+      
+      setCourse(courseResponse.data);
+      
+      // Handle both array and pagination format for sessions
+      let sessionsData = [];
+      if (Array.isArray(sessionsResponse.data)) {
+        sessionsData = sessionsResponse.data;
+      } else if (sessionsResponse.data && Array.isArray(sessionsResponse.data.results)) {
+        sessionsData = sessionsResponse.data.results;
+      } else {
+        console.warn("Sessions data is not an array:", sessionsResponse.data);
+        sessionsData = [];
+      }
+      
+      setSessions(sessionsData);
+
+      const downloadableFilesResponse = await axiosInstance.get("/courses/student/downloadable-files/");
+      const downloadableFiles = Array.isArray(downloadableFilesResponse.data)
+        ? downloadableFilesResponse.data
+        : Array.isArray(downloadableFilesResponse.data?.results)
+          ? downloadableFilesResponse.data.results
+          : [];
+
+      setCourseFiles(downloadableFiles.filter((file: File) => file.course_id === courseId));
+    } catch (error) {
+      console.error("Error fetching course data:", error);
+      toast.error("خطا در دریافت اطلاعات دوره");
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    fetchCourseData();
+  }, [fetchCourseData]);
+
+  const handleSessionClick = (session: Session) => {
+    // Check if session has video
+    const hasVideo = session.files.some(f => f.file_type.startsWith('video/'));
+    
+    if (hasVideo) {
+      // Open in the new YouTube-like video player page
+      window.open(`/panel/video/${session.id}`, '_blank');
+      
+      // Mark session as watched
+      if (!session.is_watched) {
+        markSessionAsWatched(session.id);
+      }
+    } else {
+      // Fall back to modal for sessions without video
+      setSelectedSession(session);
+      
+      // Mark session as watched
+      if (!session.is_watched) {
+        markSessionAsWatched(session.id);
+      }
+    }
+  };
+
+  const markSessionAsWatched = async (sessionId: number) => {
+    try {
+      // await axiosInstance.post(`/courses/sessions/${sessionId}/mark-watched/`);
+      // Update local state
+      setSessions(prev => prev.map(s => 
+        s.id === sessionId ? { ...s, is_watched: true } : s
+      ));
+    } catch (error) {
+      console.error("Error marking session as watched:", error);
+    }
+  };
+
+  const handleDownloadLectureNotes = (session: Session) => {
+    const pdfFile = session.files.find(f => f.file_type === 'application/pdf');
+    if (pdfFile) {
+      const downloadUrl = pdfFile.file_url || pdfFile.arvan_url || pdfFile.file_id;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `lecture_notes_${session.session_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  // const formatDate = (dateString: string) => {
+  //   return new Date(dateString).toLocaleDateString("fa-IR");
+  // };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">در حال بارگذاری...</div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">دوره یافت نشد</h3>
+      </div>
+    );
+  }
+
+  // const publishedSessions = sessions.filter(s => s.is_published);
+  const publishedSessions = sessions;
+  const progressPercentage = publishedSessions.length > 0 
+    ? Math.round((sessions.filter(s => s.is_watched).length / publishedSessions.length) * 100)
+    : 0;
+  const sessionFiles = publishedSessions.flatMap((session) =>
+    session.files.map((file) => ({
+      ...file,
+      sessionId: session.id,
+      sessionTitle: session.title,
+      sessionNumber: session.session_number,
+    }))
+  );
+  const allFiles = [
+    ...courseFiles.map((file) => ({
+      ...file,
+      sessionId: file.session_id ?? 0,
+      sessionTitle: file.session_name || course?.title || "",
+      sessionNumber: publishedSessions.find((session) => session.id === file.session_id)?.session_number ?? 0,
+    })),
+    ...sessionFiles,
+  ].filter((file, index, self) => self.findIndex((item) => item.id === file.id) === index);
+
+  return (
+    <div className="space-y-6">
+      {/* Course Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <CardTitle className="text-2xl">{course.title}</CardTitle>
+                {course.is_live && (
+                  <div className="flex items-center gap-1 px-1 rounded-lg pl-2 border bg-red-500/60 text-red-200 border-red-500 animate-pulse">
+                    <Radio className="w-3 h-3 mr-1" />
+                    آنلاین
+                  </div>
+                )}
+              </div>
+              <p className="text-muted-foreground mt-2">{course.description || "توضیحی برای این دوره ثبت نشده است"}</p>
+              
+              {/* Live Stream Button */}
+              {course.is_live && course.live_iframe && (
+                <div className="mt-4">
+                  <Button 
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => window.open(`/panel/live/${course.id}`, '_blank')}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    مشاهده پخش زنده
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Course Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="flex items-center gap-3 p-3 bg-blue-500/5 rounded-lg">
+              <Play className="w-6 h-6 text-blue-600" />
+              <div>
+                <div className="text-lg font-bold text-blue-600">{publishedSessions.length}</div>
+                <div className="text-sm text-blue-600">جلسه</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-purple-500/5 op rounded-lg">
+              <Users className="w-6 h-6 text-purple-600" />
+              <div>
+                <div className="text-sm text-purple-600">مدرس</div>
+                <div className="text-sm font-medium text-purple-600">{course.teacher.username}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-orange-500/5 rounded-lg">
+              <Clock className="w-6 h-6 text-orange-600" />
+              <div>
+                <div className="text-sm text-orange-600">پیشرفت</div>
+                <div className="text-sm font-medium text-orange-600">{progressPercentage}%</div>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* SpotPlayer License Card (only if the course is protected by SpotPlayer) */}
+      {course.spotplayer_course_id && (
+        <SpotPlayerLicenseCard courseId={course.id} enableWebPlayer={false} />
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="sessions" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="sessions">جلسات ({publishedSessions.length})</TabsTrigger>
+          <TabsTrigger value="lecture-notes">فایل‌ها و جزوه‌ها ({allFiles.length})</TabsTrigger>
+        </TabsList>
+
+        {/* Sessions Tab */}
+        <TabsContent value="sessions" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>جلسات دوره</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {publishedSessions.length === 0 ? (
+                <div className="text-center py-12">
+                  <Play className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">هنوز جلسه‌ای منتشر نشده است</h3>
+                  <p className="text-muted-foreground">لطفاً منتظر بمانید تا معلم جلسات را منتشر کند</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {publishedSessions.map((session) => (
+                    <StudentSessionCard 
+                      key={session.id} 
+                      session={session}
+                      onClick={() => handleSessionClick(session)}
+                      onDownloadNotes={() => handleDownloadLectureNotes(session)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Lecture Notes Tab */}
+        <TabsContent value="lecture-notes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>فایل‌ها و جزوات دوره</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {allFiles.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">هنوز فایلی آپلود نشده است</h3>
+                  <p className="text-muted-foreground">لطفاً منتظر بمانید تا معلم فایل‌ها یا جزوات را آپلود کند</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {allFiles.map((file) => (
+                    <FileResourceCard
+                      key={`${file.sessionId}-${file.id}`}
+                      file={file}
+                      onDownload={() => {
+                        const downloadUrl = file.file_url || file.arvan_url || file.file_id;
+                        const link = document.createElement("a");
+                        link.href = downloadUrl;
+                        link.download = file.title || `file_${file.id}`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Session Detail Modal */}
+      {selectedSession && (
+        <SessionDetailModal
+          session={selectedSession}
+          onClose={() => setSelectedSession(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+interface StudentSessionCardProps {
+  session: Session;
+  onClick: () => void;
+  onDownloadNotes: () => void;
+}
+
+function StudentSessionCard({ session, onClick, onDownloadNotes }: StudentSessionCardProps) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fa-IR");
+  };
+
+  const hasVideo = session.files.some(f => f.file_type.startsWith('video/'));
+  const hasPDF = session.files.some(f => f.file_type === 'application/pdf');
+
+  return (
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Badge variant="outline">جلسه {session.session_number}</Badge>
+              {hasVideo && (
+                <Badge variant="default" className="bg-blue-100 text-blue-800">
+                  ویدیو
+                </Badge>
+              )}
+              {session.is_watched && (
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  مشاهده شده
+                </Badge>
+              )}
+            </div>
+            <h3 className="text-lg font-medium mb-2">{session.title}</h3>
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+              {session.description || "توضیحی برای این جلسه ثبت نشده است"}
+            </p>
+            
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(session.created_at)}</span>
+              </div>
+            </div>
+
+            {/* Files */}
+            <div className="flex items-center gap-3">
+              {hasVideo && (
+                <div className="flex items-center gap-2 text-sm text-blue-600">
+                  <Play className="w-4 h-4" />
+                  <span>ویدیو موجود</span>
+                </div>
+              )}
+              {hasPDF && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <FileText className="w-4 h-4" />
+                  <span>جزوه موجود</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 ml-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              <Play className="w-4 h-4 ml-2" />
+              {hasVideo ? "مشاهده در پخش‌کننده" : "مشاهده"}
+            </Button>
+            {hasPDF && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadNotes();
+                }}
+              >
+                <Download className="w-4 h-4 ml-2" />
+                دانلود جزوه
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface FileResourceCardProps {
+  file: File & {
+    sessionId: number;
+    sessionTitle: string;
+    sessionNumber: number;
+  };
+  onDownload: () => void;
+}
+
+function FileResourceCard({ file, onDownload }: FileResourceCardProps) {
+  const isPdf = file.file_type === 'application/pdf';
+  const isVideo = file.file_type.startsWith('video/');
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="pt-4">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                {isPdf ? (
+                  <FileText className="w-5 h-5 text-green-600" />
+                ) : isVideo ? (
+                  <Play className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                )}
+                <Badge variant="outline">جلسه {file.sessionNumber}</Badge>
+              </div>
+              <h3 className="font-medium">{file.title}</h3>
+              <p className="text-sm text-muted-foreground">{file.sessionTitle}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Badge variant={isPdf ? "default" : "secondary"}>
+              {isPdf ? "جزوه PDF" : isVideo ? "ویدیو" : file.file_type}
+            </Badge>
+          </div>
+
+          <Button onClick={onDownload} className="w-full" size="sm">
+            <Download className="w-4 h-4 ml-2" />
+            دانلود
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface SessionDetailModalProps {
+  session: Session;
+  onClose: () => void;
+}
+
+function SessionDetailModal({ session, onClose }: SessionDetailModalProps) {
+  const videoFile = session.files.find(f => f.file_type.startsWith('video/'));
+  const pdfFile = session.files.find(f => f.file_type === 'application/pdf');
+  const [playerUrl, setPlayerUrl] = useState('');
+  useEffect(
+    () => {
+      const fetchPlayerUrl = async () => {
+        if (videoFile?.id) {
+          const res = await axiosInstance.get(`/files/${videoFile.id}/player_url`);
+          setPlayerUrl(res.data.player_url);
+        }
+      };
+      fetchPlayerUrl();
+    },
+    [videoFile]
+  );
+
+
+  return (
+    <div
+     className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 p-4"
+     >
+      <div className="rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">جلسه {session.session_number}: {session.title}</h2>
+            <Button variant="outline" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {session.description && (
+            <p className="text-muted-foreground mb-6">{session.description}</p>
+          )}
+
+          {/* Video Player */}
+          {videoFile && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">ویدیو جلسه</h3>
+              {/* <video 
+                controls 
+                className="w-full rounded-lg"
+                src={videoFile.arvan_url || videoFile.file_id}
+              >
+                مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+              </video> */}
+              {/* {videoFile.player_url} */}
+              <iframe 
+                src={playerUrl}
+                className="w-full rounded-lg"
+                title="Video Player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          )}
+
+          {/* Lecture Notes */}
+          {pdfFile && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">جزوه جلسه</h3>
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-8 h-8 text-green-600" />
+                  <div className="flex-1">
+                    <p className="font-medium">جزوه جلسه {session.session_number}</p>
+                    <p className="text-sm text-muted-foreground">فایل PDF</p>
+                  </div>
+                  <Button onClick={() => {
+                    const link = document.createElement("a");
+                      link.href = pdfFile.file_url || pdfFile.arvan_url || pdfFile.file_id;
+                      link.download = pdfFile.title || `lecture_notes_${session.session_number}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}>
+                    <Download className="w-4 h-4 ml-2" />
+                    دانلود
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={onClose}>بستن</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

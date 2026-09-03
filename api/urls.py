@@ -1,0 +1,53 @@
+"""
+URL configuration for api project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+# Enhanced admin configuration
+admin.site.site_header = "سیستم مدیریت آرین تفضلی‌زاده"
+admin.site.site_title = "پنل مدیریت آرین تفضلی‌زاده"
+admin.site.index_title = "به پنل مدیریت آرین تفضلی‌زاده خوش آمدید"
+
+# Import admin configuration to ensure all models are registered
+try:
+    from . import admin_config
+except ImportError:
+    pass
+
+urlpatterns = [
+    path('api/', include('accounts.urls')),
+    path('api/accounts/', include('accounts.urls')),
+    path("api/", include("courses.urls")),
+    path("api/", include("contents.urls")),
+    path("api/", include("tests.urls")),
+    path("api/shop/", include("shop.urls")),
+    path("api/finance/", include("finance.urls")),
+    path("api/spotplayer/", include("spotplayer.urls")),
+    path("api/support/", include("tickets.urls")),
+    path("api/knowledge/", include("knowledge.urls")),
+    path("api/", include("blog.urls")),
+    path('admin/', admin.site.urls),
+]
+
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
+# Serve static and media files in development
+if settings.DEBUG:
+    urlpatterns += staticfiles_urlpatterns()
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
