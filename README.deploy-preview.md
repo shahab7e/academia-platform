@@ -17,13 +17,14 @@ the caveats at the bottom before treating it as a real production deploy.
 4. Once green, the frontend is live at:
    `https://academia-frontend.onrender.com`
 
-Send that link. Log in with:
+Send that link. Log in as `employer_demo`, with the password you set in
+`DEMO_STUDENT_PASSWORD` on the backend service. A separate `admin_demo`
+account (`DEMO_ADMIN_PASSWORD`) exists for the Django admin at `/admin/` on
+the backend URL.
 
-- **Username:** `employer_demo`
-- **Password:** `Kanoon@2026Demo`
-
-(A separate `admin_demo` / `Kanoon@2026Admin` account also exists, for the
-Django admin at `/admin/` on the backend URL.)
+Both are read from the environment on purpose, so no password is written down
+in this repository. Set them in the Render dashboard and pass them on
+privately.
 
 ## What's seeded automatically
 

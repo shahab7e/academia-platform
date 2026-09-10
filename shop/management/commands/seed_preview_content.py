@@ -14,8 +14,10 @@ it can be safely re-run (e.g. on every deploy) after refreshing the JSON files.
 import json
 import shutil
 
+import os
+
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from accounts.models import User, UserProfile
 from contents.models import GalleryImage
@@ -25,13 +27,15 @@ PREVIEW_DIR = settings.BASE_DIR / "data" / "preview"
 PREVIEW_MEDIA_DIR = PREVIEW_DIR / "assets"
 
 # Demo login handed to whoever needs to click through the deployed preview.
+# Passwords come from the environment so they never live in the repository:
+# set DEMO_STUDENT_PASSWORD / DEMO_ADMIN_PASSWORD where the seed runs.
 DEMO_STUDENT_USERNAME = "employer_demo"
-DEMO_STUDENT_PASSWORD = "Kanoon@2026Demo"
+DEMO_STUDENT_PASSWORD = os.environ.get("DEMO_STUDENT_PASSWORD", "")
 DEMO_STUDENT_NATIONAL_ID = "0012345679"  # passes the checksum, not a real person's ID
 DEMO_STUDENT_PHONE = "09120000000"
 
 DEMO_ADMIN_USERNAME = "admin_demo"
-DEMO_ADMIN_PASSWORD = "Kanoon@2026Admin"
+DEMO_ADMIN_PASSWORD = os.environ.get("DEMO_ADMIN_PASSWORD", "")
 
 
 class Command(BaseCommand):
@@ -52,6 +56,20 @@ class Command(BaseCommand):
         self._seed_gallery()
 
     def _ensure_demo_users(self):
+        missing = [
+            name
+            for name, value in (
+                ("DEMO_ADMIN_PASSWORD", DEMO_ADMIN_PASSWORD),
+                ("DEMO_STUDENT_PASSWORD", DEMO_STUDENT_PASSWORD),
+            )
+            if not value
+        ]
+        if missing:
+            raise CommandError(
+                "Set " + " and ".join(missing) + " in the environment before seeding; "
+                "the demo accounts must not be created with a blank password."
+            )
+
         admin, created = User.objects.update_or_create(
             username=DEMO_ADMIN_USERNAME,
             defaults={"role": User.ADMIN, "is_staff": True, "is_superuser": True},
